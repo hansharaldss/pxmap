@@ -4,6 +4,7 @@ library(shinyWidgets)
 library(tidyverse)
 library(DT)
 library(openxlsx)
+library(shinyjs)
 
 # Functions ----
 
@@ -62,11 +63,11 @@ DTsetup2<-list(
 )
 
 # Main table
-tafla<-readRDS("maintab1706470824.70881.rds")
+tafla<-readRDS("maintab1726517111.01599.rds")
 # Metadata returned by API
-apimeta<-readRDS("apimeta1706470824.96876.rds")
+apimeta<-readRDS("apimeta1726517111.26501.rds")
 #Metadata from pxweb
-pxwebmeta<-readRDS("pxwebmeta1706488768.31164.rds")
+pxwebmeta<-readRDS("pxwebmeta1726517111.74485.rds")
 
 # Extra variable added after last scrape. Should be moved to scraping script.
 
@@ -78,10 +79,12 @@ tafla$timi<-timi
 # UI ----
 
 ui <- fluidPage(
+    tags$head(tags$style('body {font-family: Arial;}')),
     tags$style(HTML(
       ".shiny-output-error { visibility: hidden; }
        .shiny-output-error:before { visibility: hidden;}"
     )),
+    useShinyjs(),
     titlePanel("pxmap"),
     br(),
     "Yfirlit yfir px-töflur á vef Hagstofu Íslands",
@@ -98,7 +101,10 @@ ui <- fluidPage(
                                            label="",
                                            choices = unique(tafla$crumbs1),
                                            selected = unique(tafla$crumbs1)
-                      )
+                      ),
+                      br(),
+                      actionButton("unsel_crumbs1", "Afhaka allt"),
+                      shinyjs::disabled(actionButton("sel_crumbs1", "Velja allt")) 
              ),
              #br(),
              textOutput("filtexti1")
@@ -225,7 +231,7 @@ ui <- fluidPage(
 
 # Server ----
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   ## Date ----
   
@@ -274,7 +280,7 @@ server <- function(input, output) {
     return(tafla_ut)
   })
   
-  # Text output displaying the number of level 1 categories in ufiltered main table and the number of selected categories.
+  # Text output displaying the number of level 1 categories in unfiltered main table and the number of selected categories.
   
   output$filtexti1<-renderText({
     teljari<-length(input$crumbs1_inp)
@@ -283,6 +289,31 @@ server <- function(input, output) {
     paste0("( ", teljari, " / ", nefnari, " )")
   })
   
+  # Udates to select/unselect all when action buttons sel_crumbs1 or unsel_crumbs1 are used
+  
+  observeEvent(input$unsel_crumbs1, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs1_inp", selected = "")
+  })
+  
+  observeEvent(input$sel_crumbs1, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs1_inp", selected = unique(tafla$crumbs1))
+  })
+  
+  observe(
+    if(length(input$crumbs1_inp)<length(unique(tafla$crumbs1))){
+      enable("sel_crumbs1")
+    }else{
+      disable("sel_crumbs1")
+    }
+  )
+  
+  observe(
+    if(length(input$crumbs1_inp)==0){
+      disable("unsel_crumbs1")
+    }else{
+      enable("unsel_crumbs1")
+    }
+  )
   
   # Dynamic input for selecting level 2 categories from those represented in table after first filtering
   
@@ -290,17 +321,47 @@ server <- function(input, output) {
     tafla2<-tafla_filt1()
       
     fluidRow(
+      useShinyjs(),
       style="padding: 20px;",
       dropdown(inputId ="crumbs2_dropdown", label="Flokkur 2",
                         awesomeCheckboxGroup("crumbs2_inp",
                                              label="",
                                              choices = unique(tafla2$crumbs2),
                                              selected = unique(tafla2$crumbs2)
-                      )
+                      ),
+               br(),
+               actionButton("unsel_crumbs2", "Afhaka allt"),
+               shinyjs::disabled(actionButton("sel_crumbs2", "Velja allt")) 
       ),
       textOutput("filtexti2")
       )
     })
+  
+  # Udates to select/unselect all when action buttons sel_crumbs2 or unsel_crumbs2 are used
+  
+  observeEvent(input$unsel_crumbs2, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs2_inp", selected = "")
+  })
+  
+  observeEvent(input$sel_crumbs2, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs2_inp", selected = unique(tafla_filt1()$crumbs2))
+  })
+  
+  observe(
+    if(length(input$crumbs2_inp)<length(unique(tafla_filt1()$crumbs2))){
+      enable("sel_crumbs2")
+    }else{
+      disable("sel_crumbs2")
+    }
+  )
+  
+  observe(
+    if(length(input$crumbs2_inp)==0){
+      disable("unsel_crumbs2")
+    }else{
+      enable("unsel_crumbs2")
+    }
+  )
     
   # Text output displaying the number of level 2 categories in main table after first filtering and the number of selected categories.
   
@@ -336,12 +397,41 @@ server <- function(input, output) {
                                     label="",
                                     choices = unique(tafla3$crumbs3),
                                     selected = unique(tafla3$crumbs3)
-               )
+               ),
+               br(),
+               actionButton("unsel_crumbs3", "Afhaka allt"),
+               shinyjs::disabled(actionButton("sel_crumbs3", "Velja allt")) 
       ),
       #br(),
       textOutput("filtexti3")
     )
   })
+  
+  # Udates to select/unselect all when action buttons sel_crumbs3 or unsel_crumbs3 are used
+  
+  observeEvent(input$unsel_crumbs3, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs3_inp", selected = "")
+  })
+  
+  observeEvent(input$sel_crumbs3, {
+    updateCheckboxGroupInput(session = session, inputId = "crumbs3_inp", selected = unique(tafla_filt2()$crumbs3))
+  })
+  
+  observe(
+    if(length(input$crumbs3_inp)<length(unique(tafla_filt2()$crumbs3))){
+      enable("sel_crumbs3")
+    }else{
+      disable("sel_crumbs3")
+    }
+  )
+  
+  observe(
+    if(length(input$crumbs3_inp)==0){
+      disable("unsel_crumbs3")
+    }else{
+      enable("unsel_crumbs3")
+    }
+  )
   
   # Text output displaying the number of level 3 categories in main table after second filtering and the number of selected categories.
   
@@ -413,8 +503,8 @@ server <- function(input, output) {
     tafla4<-tafla_filt3()
     
     tafla_ut<-tafla4%>%
-      select("crumbs1", "crumbs2", "crumbs3", "nofn2", "breytur", input$extravars_inp)%>%
-      datatable(colnames=c("Flokkur 1", "Flokkur 2", "Flokkur 3", "Heiti", "Skiptibreytur", labs_varsel()),
+      select("crumbs2", "crumbs3", "nofn2", "breytur", input$extravars_inp)%>%
+      datatable(colnames=c("Flokkur 2", "Flokkur 3", "Heiti", "Skiptibreytur", labs_varsel()),
                 rownames= FALSE, filter = 'top',
                 selection = list(mode='single', selected=1),
                 options = list(
